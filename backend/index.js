@@ -1,7 +1,7 @@
 require("dotenv").config();
-const { dataSource } = require("./data-source");
-const { createApp } = require("./app.js");
-const { connectRedis } = require("./cache/redis");
+const { dataSource } = require("./src/data-source.js");
+const { createApp } = require("./src/app.js");
+const { connectRedis } = require("./src/cache/redis.js");
 
 const app = createApp(dataSource);
 const port = process.env.PORT || 4000;
