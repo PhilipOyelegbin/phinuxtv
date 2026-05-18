@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const { dataSource } = require("./data-source");
-const { createApp } = require("./app");
+const { createApp } = require("./app.js");
 const { connectRedis } = require("./cache/redis");
 
 async function bootstrap() {
