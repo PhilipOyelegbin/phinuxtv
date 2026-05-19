@@ -117,6 +117,17 @@ export function AppShell() {
       <main>
         <Outlet />
       </main>
+      <footer className="border-t border-white/10 bg-ink-950/80 backdrop-blur-xl">
+        <p className="mt-2 text-center text-xl text-ember-500/50">
+          This website or application uses TMDB and the TMDB APIs but is not
+          endorsed, certified, or otherwise approved by TMDB.
+        </p>
+        <div className="container mx-auto px-4 py-6">
+          <p className="text-center text-sm text-white/40">
+            &copy; {new Date().getFullYear()} PhinuxTV. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
