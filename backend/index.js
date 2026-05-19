@@ -6,8 +6,15 @@ const { connectRedis } = require("./src/cache/redis.js");
 const app = createApp(dataSource);
 const port = process.env.PORT || 4000;
 
-app.listen(port, async () => {
+async function bootstrap() {
   await dataSource.initialize();
   await connectRedis();
-  console.log(`PhinuxTV API running on http://localhost:${port}`);
-});
+
+  app.listen(port, () => {
+    console.log(`PhinuxTV API running on http://localhost:${port}`);
+  });
+}
+
+bootstrap().catch((error) =>
+  console.error("Error starting the server:", error),
+);

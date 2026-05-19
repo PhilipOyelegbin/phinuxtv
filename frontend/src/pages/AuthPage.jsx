@@ -195,7 +195,6 @@ export function AuthPage({ mode }) {
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                ["Auth", "JWT + Argon2"],
                 ["Library", "Search and save"],
                 ["Replay", "Watch history"],
               ].map(([title, subtitle]) => (
