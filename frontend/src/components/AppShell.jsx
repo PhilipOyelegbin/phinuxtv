@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -7,6 +8,9 @@ const navLinkClass = ({ isActive }) =>
 export function AppShell() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <div className="min-h-screen text-white">
@@ -43,9 +47,67 @@ export function AppShell() {
                 {user?.name || "Guest"}
               </div>
             </div>
+            <div className="relative md:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+                aria-haspopup="menu"
+                aria-expanded={isMobileMenuOpen}
+              >
+                Menu
+              </button>
+              {isMobileMenuOpen && (
+                <div className="absolute right-0 mt-3 w-52 overflow-hidden rounded-2xl border border-white/10 bg-ink-900 shadow-2xl shadow-black/40">
+                  <div className="border-b border-white/10 px-4 py-3 text-xs uppercase tracking-[0.25em] text-white/40">
+                    Navigate
+                  </div>
+                  <div className="p-2">
+                    <NavLink
+                      to="/"
+                      end
+                      onClick={closeMobileMenu}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-3 py-2 text-sm transition ${isActive ? "bg-white text-ink-950" : "text-white/75 hover:bg-white/10 hover:text-white"}`
+                      }
+                    >
+                      Discover
+                    </NavLink>
+                    <NavLink
+                      to="/favorites"
+                      onClick={closeMobileMenu}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-3 py-2 text-sm transition ${isActive ? "bg-white text-ink-950" : "text-white/75 hover:bg-white/10 hover:text-white"}`
+                      }
+                    >
+                      Favorites
+                    </NavLink>
+                    <NavLink
+                      to="/history"
+                      onClick={closeMobileMenu}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-3 py-2 text-sm transition ${isActive ? "bg-white text-ink-950" : "text-white/75 hover:bg-white/10 hover:text-white"}`
+                      }
+                    >
+                      History
+                    </NavLink>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeMobileMenu();
+                        logout();
+                      }}
+                      className="mt-2 block w-full rounded-xl px-3 py-2 text-left text-sm text-white/75 transition hover:bg-white/10 hover:text-white"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={logout}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+              className="hidden rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 md:inline-flex"
             >
               Logout
             </button>
