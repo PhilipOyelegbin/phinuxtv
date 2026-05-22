@@ -120,6 +120,40 @@ async function fetchPopularMovies(page = 1) {
   };
 }
 
+async function fetchNowPlayingMovies(page = 1) {
+  const payload = await tmdbRequest("/movie/now_playing", {
+    page: String(page),
+  });
+  return {
+    results: Array.isArray(payload.results) ? payload.results : [],
+    page: Number(payload.page) || Number(page) || 1,
+    totalPages: Number(payload.total_pages) || 1,
+    totalResults: Number(payload.total_results) || 0,
+  };
+}
+
+async function fetchUpcomingMovies(page = 1) {
+  const payload = await tmdbRequest("/movie/upcoming", { page: String(page) });
+  return {
+    results: Array.isArray(payload.results) ? payload.results : [],
+    page: Number(payload.page) || Number(page) || 1,
+    totalPages: Number(payload.total_pages) || 1,
+    totalResults: Number(payload.total_results) || 0,
+  };
+}
+
+async function fetchTopRatedMovies(page = 1) {
+  const payload = await tmdbRequest("/movie/top_rated", {
+    page: String(page),
+  });
+  return {
+    results: Array.isArray(payload.results) ? payload.results : [],
+    page: Number(payload.page) || Number(page) || 1,
+    totalPages: Number(payload.total_pages) || 1,
+    totalResults: Number(payload.total_results) || 0,
+  };
+}
+
 async function searchMovies(query, page = 1) {
   const payload = await tmdbRequest("/search/movie", {
     query,
@@ -152,6 +186,9 @@ async function fetchRecommendations(tmdbId) {
 
 module.exports = {
   fetchPopularMovies,
+  fetchNowPlayingMovies,
+  fetchUpcomingMovies,
+  fetchTopRatedMovies,
   searchMovies,
   fetchMovieDetails,
   fetchRecommendations,

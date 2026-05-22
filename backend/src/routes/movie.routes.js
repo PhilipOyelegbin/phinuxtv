@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   listMovies,
+  listMoviesByCategory,
   getMovieById,
   addFavorite,
   removeFavorite,
@@ -20,6 +21,62 @@ function createMovieRoutes(dataSource) {
         dataSource,
         req.auth.userId,
         req.query.search || "",
+        Number(req.query.page || 1),
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/now-playing", requireAuth, async (req, res, next) => {
+    try {
+      const result = await listMoviesByCategory(
+        dataSource,
+        req.auth.userId,
+        "now-playing",
+        Number(req.query.page || 1),
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/upcoming", requireAuth, async (req, res, next) => {
+    try {
+      const result = await listMoviesByCategory(
+        dataSource,
+        req.auth.userId,
+        "upcoming",
+        Number(req.query.page || 1),
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/top-rated", requireAuth, async (req, res, next) => {
+    try {
+      const result = await listMoviesByCategory(
+        dataSource,
+        req.auth.userId,
+        "top-rated",
+        Number(req.query.page || 1),
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/popular", requireAuth, async (req, res, next) => {
+    try {
+      const result = await listMoviesByCategory(
+        dataSource,
+        req.auth.userId,
+        "popular",
         Number(req.query.page || 1),
       );
       res.json(result);

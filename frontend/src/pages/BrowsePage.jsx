@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MovieCard } from "../components/MovieCard";
+import { MovieCarouselSection } from "../components/MovieCarouselSection";
 import { useMovieStore } from "../store/useMovieStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { api } from "../api/client";
 
 export function BrowsePage() {
   const [search, setSearch] = useState("");
+  const [collections, setCollections] = useState({
+    nowPlaying: [],
+    upcoming: [],
+    popular: [],
+    topRated: [],
+  });
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
   const movies = useMovieStore((state) => state.catalog);
   const loadCatalog = useMovieStore((state) => state.loadCatalog);
   const goToPage = useMovieStore((state) => state.goToPage);
@@ -24,6 +33,55 @@ export function BrowsePage() {
       loadHistory();
     }
   }, [loadCatalog, loadFavorites, loadHistory, user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCollections = async () => {
+      setCollectionsLoading(true);
+
+      try {
+        const [nowPlaying, upcoming, popular, topRated] = await Promise.all([
+          api.nowPlayingMovies(1),
+          api.upcomingMovies(1),
+          api.popularMovies(1),
+          api.topRatedMovies(1),
+        ]);
+
+        if (!cancelled) {
+          setCollections({
+            nowPlaying: nowPlaying.movies,
+            upcoming: upcoming.movies,
+            popular: popular.movies,
+            topRated: topRated.movies,
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCollections({
+            nowPlaying: [],
+            upcoming: [],
+            popular: [],
+            topRated: [],
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setCollectionsLoading(false);
+        }
+      }
+    };
+
+    loadCollections();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const featured = useMemo(() => movies[0], [movies]);
 
@@ -90,6 +148,12 @@ export function BrowsePage() {
                   Watch featured
                 </Link>
               )}
+              <Link
+                to="/movies"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                View all movies
+              </Link>
             </div>
           </div>
           {featured && (
@@ -129,88 +193,111 @@ export function BrowsePage() {
         ))}
       </section>
 
-      <section className="mt-12">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-white/45">
-              Catalog
+      {search.trim().length === 0 ? (
+        <div className="mt-12 space-y-12">
+          {collectionsLoading && (
+            <div className="glass rounded-[28px] border-white/10 p-8 text-white/60">
+              Loading movie sections...
             </div>
-            <h2 className="mt-2 text-3xl font-semibold text-white">
-              Trending movies
-            </h2>
-          </div>
-          <div className="text-sm text-white/45">
-            {totalResults} total titles
-          </div>
+          )}
+          <MovieCarouselSection
+            title="Now Playing"
+            movies={collections.nowPlaying}
+          />
+          <MovieCarouselSection
+            title="Upcoming"
+            movies={collections.upcoming}
+          />
+          <MovieCarouselSection title="Popular" movies={collections.popular} />
+          <MovieCarouselSection
+            title="Top Rated"
+            movies={collections.topRated}
+          />
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {movies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} actions={null} />
-          ))}
-        </div>
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-          <button
-            onClick={() => goToPage(page - 1)}
-            disabled={page <= 1 || isLoading}
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <div className="flex items-center gap-2 text-sm text-white/60">
-            {visiblePages[0] > 1 && (
-              <>
-                <button
-                  onClick={() => goToPage(1)}
-                  disabled={isLoading}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  1
-                </button>
-                {visiblePages[0] > 2 && (
-                  <span className="text-white/40">...</span>
-                )}
-              </>
-            )}
-
-            {visiblePages.map((pageNumber) => (
-              <button
-                key={pageNumber}
-                onClick={() => goToPage(pageNumber)}
-                disabled={isLoading}
-                className={`rounded-lg border px-3 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                  pageNumber === page
-                    ? "border-mint-400/60 bg-mint-400/20 text-mint-200"
-                    : "border-white/10 text-white hover:bg-white/10"
-                }`}
-              >
-                {pageNumber}
-              </button>
+      ) : (
+        <section className="mt-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/45">
+                Catalog
+              </div>
+              <h2 className="mt-2 text-3xl font-semibold text-white">
+                Trending movies
+              </h2>
+            </div>
+            <div className="text-sm text-white/45">
+              {totalResults} total titles
+            </div>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {movies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} actions={null} />
             ))}
-
-            {visiblePages[visiblePages.length - 1] < totalPages && (
-              <>
-                {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-                  <span className="text-white/40">...</span>
-                )}
-                <button
-                  onClick={() => goToPage(totalPages)}
-                  disabled={isLoading}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
           </div>
-          <button
-            onClick={() => goToPage(page + 1)}
-            disabled={page >= totalPages || isLoading}
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </section>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <button
+              onClick={() => goToPage(page - 1)}
+              disabled={page <= 1 || isLoading}
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-2 text-sm text-white/60">
+              {visiblePages[0] > 1 && (
+                <>
+                  <button
+                    onClick={() => goToPage(1)}
+                    disabled={isLoading}
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    1
+                  </button>
+                  {visiblePages[0] > 2 && (
+                    <span className="text-white/40">...</span>
+                  )}
+                </>
+              )}
+
+              {visiblePages.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  onClick={() => goToPage(pageNumber)}
+                  disabled={isLoading}
+                  className={`rounded-lg border px-3 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    pageNumber === page
+                      ? "border-mint-400/60 bg-mint-400/20 text-mint-200"
+                      : "border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+
+              {visiblePages[visiblePages.length - 1] < totalPages && (
+                <>
+                  {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
+                    <span className="text-white/40">...</span>
+                  )}
+                  <button
+                    onClick={() => goToPage(totalPages)}
+                    disabled={isLoading}
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => goToPage(page + 1)}
+              disabled={page >= totalPages || isLoading}
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

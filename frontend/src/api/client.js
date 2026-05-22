@@ -58,6 +58,10 @@ export const api = {
 
     return request(`/movies${query ? `?${query}` : ""}`);
   },
+  nowPlayingMovies: (page = 1) => request(`/movies/now-playing?page=${page}`),
+  upcomingMovies: (page = 1) => request(`/movies/upcoming?page=${page}`),
+  popularMovies: (page = 1) => request(`/movies/popular?page=${page}`),
+  topRatedMovies: (page = 1) => request(`/movies/top-rated?page=${page}`),
   movie: (id) => request(`/movies/${id}`),
   recommendations: (id) => request(`/movies/${id}/recommendations`),
   watch: (id, payload = {}) =>

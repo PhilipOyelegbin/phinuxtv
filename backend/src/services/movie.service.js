@@ -1,6 +1,9 @@
 const { In } = require("typeorm");
 const {
   fetchPopularMovies,
+  fetchNowPlayingMovies,
+  fetchUpcomingMovies,
+  fetchTopRatedMovies,
   searchMovies,
   fetchMovieDetails,
   fetchRecommendations,
@@ -73,6 +76,59 @@ async function syncTmdbMovieList(dataSource, tmdbMovies) {
   return Promise.all(
     tmdbMovies.map((tmdbMovie) => upsertMovieFromTmdb(dataSource, tmdbMovie)),
   );
+}
+
+async function listTmdbCollection(dataSource, userId, cacheKey, fetcher, page) {
+  const currentPage = Number(page) > 0 ? Number(page) : 1;
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    const flags = await getUserFlags(
+      dataSource,
+      userId,
+      cached.movies.map((movie) => movie.id),
+    );
+
+    return {
+      movies: cached.movies.map((movie) =>
+        movieToResponse(movie, {
+          isFavorite: flags.favoriteMovieIds.has(movie.id),
+          isLiked: flags.likedMovieIds.has(movie.id),
+        }),
+      ),
+      page: cached.page,
+      totalPages: cached.totalPages,
+      totalResults: cached.totalResults,
+    };
+  }
+
+  const tmdbPayload = await fetcher(currentPage);
+  const movies = await syncTmdbMovieList(dataSource, tmdbPayload.results);
+  const responsePayload = {
+    movies,
+    page: tmdbPayload.page,
+    totalPages: tmdbPayload.totalPages,
+    totalResults: tmdbPayload.totalResults,
+  };
+  await setCache(cacheKey, responsePayload, 300);
+
+  const flags = await getUserFlags(
+    dataSource,
+    userId,
+    movies.map((movie) => movie.id),
+  );
+
+  return {
+    movies: movies.map((movie) =>
+      movieToResponse(movie, {
+        isFavorite: flags.favoriteMovieIds.has(movie.id),
+        isLiked: flags.likedMovieIds.has(movie.id),
+      }),
+    ),
+    page: responsePayload.page,
+    totalPages: responsePayload.totalPages,
+    totalResults: responsePayload.totalResults,
+  };
 }
 
 async function resolveMovieRecord(dataSource, movieIdentifier) {
@@ -188,6 +244,45 @@ async function listMovies(dataSource, userId, search, page = 1) {
     totalPages: responsePayload.totalPages,
     totalResults: responsePayload.totalResults,
   };
+}
+
+async function listMoviesByCategory(dataSource, userId, category, page = 1) {
+  const currentPage = Number(page) > 0 ? Number(page) : 1;
+  const normalizedCategory = String(category || "").toLowerCase();
+
+  switch (normalizedCategory) {
+    case "now-playing":
+      return listTmdbCollection(
+        dataSource,
+        userId,
+        createCacheKey("movies", `now-playing:page:${currentPage}`),
+        fetchNowPlayingMovies,
+        currentPage,
+      );
+    case "upcoming":
+      return listTmdbCollection(
+        dataSource,
+        userId,
+        createCacheKey("movies", `upcoming:page:${currentPage}`),
+        fetchUpcomingMovies,
+        currentPage,
+      );
+    case "top-rated":
+      return listTmdbCollection(
+        dataSource,
+        userId,
+        createCacheKey("movies", `top-rated:page:${currentPage}`),
+        fetchTopRatedMovies,
+        currentPage,
+      );
+    case "popular":
+      return listMovies(dataSource, userId, "", currentPage);
+    default: {
+      const error = new Error("Movie category not found");
+      error.statusCode = 404;
+      throw error;
+    }
+  }
 }
 
 async function getMovieById(dataSource, userId, movieId) {
@@ -385,6 +480,7 @@ async function getRecommendations(dataSource, userId, movieId) {
 module.exports = {
   movieToResponse,
   listMovies,
+  listMoviesByCategory,
   getMovieById,
   addFavorite,
   removeFavorite,

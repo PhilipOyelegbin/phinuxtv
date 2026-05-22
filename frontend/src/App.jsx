@@ -2,6 +2,7 @@ import { Route, Routes, Navigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BrowsePage } from "./pages/BrowsePage";
+import { MoviesPage } from "./pages/MoviesPage";
 import { MoviePage } from "./pages/MoviePage";
 import { FavoritesPage } from "./pages/FavoritesPage";
 import { HistoryPage } from "./pages/HistoryPage";
@@ -23,6 +24,7 @@ export default function App() {
         }
       >
         <Route index element={<BrowsePage />} />
+        <Route path="movies" element={<MoviesPage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="history" element={<HistoryPage />} />
