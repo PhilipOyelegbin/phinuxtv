@@ -71,7 +71,7 @@ export function MovieCarouselSection({ title, movies = [] }) {
         {movies.map((movie) => (
           <div
             key={movie.id}
-            className="w-64 shrink-0 snap-start snap-always sm:w-72"
+            className="w-52 shrink-0 snap-start snap-always sm:w-60"
           >
             <MovieCard movie={movie} actions={null} />
           </div>
