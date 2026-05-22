@@ -4,7 +4,7 @@ export function MovieCard({ movie, actions }) {
   return (
     <article className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-mint-300/30">
       <Link to={`/movie/${movie.id}`} className="block">
-        <div className="relative aspect-[2/3] overflow-hidden">
+        <div className="relative aspect-[3/4] overflow-hidden">
           <img
             src={movie.posterUrl}
             alt={movie.title}

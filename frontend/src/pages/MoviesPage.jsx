@@ -8,7 +8,8 @@ export function MoviesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("search") || "";
   const pageFromQuery = Number(searchParams.get("page") || 1);
-  const page = Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1;
+  const page =
+    Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1;
   const movies = useMovieStore((state) => state.catalog);
   const loadCatalog = useMovieStore((state) => state.loadCatalog);
   const goToPage = useMovieStore((state) => state.goToPage);
@@ -157,7 +158,7 @@ export function MoviesPage() {
             {visiblePages.map((pageNumber) => (
               <button
                 key={pageNumber}
-                  onClick={() => updateQuery(search, pageNumber)}
+                onClick={() => updateQuery(search, pageNumber)}
                 disabled={isLoading}
                 className={`rounded-lg border px-3 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   pageNumber === page
