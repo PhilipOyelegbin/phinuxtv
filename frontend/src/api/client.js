@@ -58,6 +58,17 @@ export const api = {
 
     return request(`/movies${query ? `?${query}` : ""}`);
   },
+  tvSeries: (search = "", page = 1) => {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set("search", search);
+    }
+    params.set("page", String(page));
+    const query = params.toString();
+
+    return request(`/movies/tv-series${query ? `?${query}` : ""}`);
+  },
+  tvSeriesItem: (id) => request(`/movies/tv-series/${id}`),
   nowPlayingMovies: (page = 1) => request(`/movies/now-playing?page=${page}`),
   upcomingMovies: (page = 1) => request(`/movies/upcoming?page=${page}`),
   popularMovies: (page = 1) => request(`/movies/popular?page=${page}`),

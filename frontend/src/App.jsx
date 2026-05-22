@@ -3,6 +3,8 @@ import { AppShell } from "./components/AppShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BrowsePage } from "./pages/BrowsePage";
 import { MoviesPage } from "./pages/MoviesPage";
+import { TVSeriesPage } from "./pages/TVSeriesPage";
+import { TVSeriesDetailPage } from "./pages/TVSeriesDetailPage";
 import { MoviePage } from "./pages/MoviePage";
 import { FavoritesPage } from "./pages/FavoritesPage";
 import { HistoryPage } from "./pages/HistoryPage";
@@ -25,6 +27,8 @@ export default function App() {
       >
         <Route index element={<BrowsePage />} />
         <Route path="movies" element={<MoviesPage />} />
+        <Route path="tv-series" element={<TVSeriesPage />} />
+        <Route path="tv-series/:id" element={<TVSeriesDetailPage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="history" element={<HistoryPage />} />

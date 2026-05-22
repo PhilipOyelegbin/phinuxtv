@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
 
 export function MovieCard({ movie, actions }) {
+  const detailPath =
+    typeof movie.streamUrl === "string" &&
+    movie.streamUrl.includes("vidsrc-embed.ru/embed/tv/")
+      ? `/tv-series/${movie.id}`
+      : `/movie/${movie.id}`;
+
   return (
     <article className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-mint-300/30">
-      <Link to={`/movie/${movie.id}`} className="block">
+      <Link to={detailPath} className="block">
         <div className="relative aspect-[3/4] overflow-hidden">
           <img
             src={movie.posterUrl}

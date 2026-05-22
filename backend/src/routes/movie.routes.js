@@ -2,6 +2,8 @@ const express = require("express");
 const {
   listMovies,
   listMoviesByCategory,
+  listTvSeries,
+  getTvSeriesById,
   getMovieById,
   addFavorite,
   removeFavorite,
@@ -80,6 +82,33 @@ function createMovieRoutes(dataSource) {
         Number(req.query.page || 1),
       );
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/tv-series", requireAuth, async (req, res, next) => {
+    try {
+      const result = await listTvSeries(
+        dataSource,
+        req.auth.userId,
+        req.query.search || "",
+        Number(req.query.page || 1),
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/tv-series/:seriesId", requireAuth, async (req, res, next) => {
+    try {
+      const movie = await getTvSeriesById(
+        dataSource,
+        req.auth.userId,
+        req.params.seriesId,
+      );
+      res.json({ movie });
     } catch (error) {
       next(error);
     }
