@@ -10,6 +10,11 @@ function createSwaggerSpec() {
     servers: [
       {
         url: "http://localhost:4001/api",
+        description: "Local",
+      },
+      {
+        url: "https://api-phinuxtv.vercel.app/api",
+        description: "Production",
       },
     ],
     components: {
