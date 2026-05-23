@@ -47,6 +47,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  userCount: () => request("/auth/users/count"),
   me: () => request("/auth/me"),
   movies: (search = "", page = 1) => {
     const params = new URLSearchParams();

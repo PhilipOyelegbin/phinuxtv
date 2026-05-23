@@ -3,6 +3,7 @@ const {
   register,
   login,
   getCurrentUser,
+  getUserCount,
   forgotPassword,
   resetPassword,
 } = require("../services/auth.service");
@@ -23,6 +24,15 @@ function createAuthRoutes(dataSource) {
   router.post("/login", async (req, res, next) => {
     try {
       const result = await login(dataSource, req.body);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/users/count", async (req, res, next) => {
+    try {
+      const result = await getUserCount(dataSource);
       res.json(result);
     } catch (error) {
       next(error);

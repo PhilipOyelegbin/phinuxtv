@@ -102,6 +102,13 @@ async function getCurrentUser(dataSource, userId) {
   return toSafeUser(user);
 }
 
+async function getUserCount(dataSource) {
+  const userRepository = dataSource.getRepository("User");
+  const totalUsers = await userRepository.count();
+
+  return { totalUsers };
+}
+
 async function forgotPassword(dataSource, payload) {
   const userRepository = dataSource.getRepository("User");
   const email = String(payload.email || "").toLowerCase();
@@ -191,6 +198,7 @@ module.exports = {
   register,
   login,
   getCurrentUser,
+  getUserCount,
   forgotPassword,
   resetPassword,
   toSafeUser,
