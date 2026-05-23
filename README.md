@@ -2,6 +2,8 @@
 
 PhinuxTV is a responsive full-stack movie and TV streaming app built with JavaScript, Express, TypeORM, Postgres, Redis, Vite, React, Tailwind CSS, Zustand, React Hook Form, and Yup.
 
+---
+
 ## Features
 
 - User registration and authentication with JWT + Argon2
@@ -17,6 +19,8 @@ PhinuxTV is a responsive full-stack movie and TV streaming app built with JavaSc
 - Swagger UI API documentation
 - Rate limiting for auth routes, public user count, and docs endpoints
 
+---
+
 ## Setup
 
 1. Copy the environment examples in `backend/.env.example` and `frontend/.env.example`.
@@ -24,6 +28,8 @@ PhinuxTV is a responsive full-stack movie and TV streaming app built with JavaSc
 3. Start Postgres and Redis with `docker compose up -d`.
 4. Install dependencies with `pnpm install`.
 5. Run both apps with `pnpm run dev`.
+
+---
 
 ## Environment Variables
 
@@ -44,12 +50,16 @@ Frontend variables in `frontend/.env`:
 
 - `VITE_API_URL` - Backend API base URL
 
+---
+
 ## URLs
 
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:4001/api`
 - User count: `http://localhost:4001/api/auth/users/count`
 - Swagger UI: `http://localhost:4001/api-docs`
+
+---
 
 ## Notes
 
@@ -58,3 +68,5 @@ Frontend variables in `frontend/.env`:
 - The catalog uses TMDB as the source of truth and caches movie and TV series responses in Redis.
 - Movie history is deduplicated per user and movie in the API.
 - Auth mutation routes are rate limited to reduce abuse, and the public user count and docs endpoints are also throttled.
+
+---
