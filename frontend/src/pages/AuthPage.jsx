@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { api } from "../api/client";
 import { useAuthStore } from "../store/useAuthStore";
 
 const registerSchema = yup.object({
@@ -47,6 +48,7 @@ export function AuthPage({ mode }) {
   const [searchParams] = useSearchParams();
   const [infoMessage, setInfoMessage] = useState("");
   const [generatedResetUrl, setGeneratedResetUrl] = useState("");
+  const [totalUsers, setTotalUsers] = useState(null);
   const tokenFromQuery = searchParams.get("token") || "";
   const {
     token,
@@ -85,6 +87,34 @@ export function AuthPage({ mode }) {
     setInfoMessage("");
     setGeneratedResetUrl("");
   }, [mode, reset]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUserCount() {
+      if (mode !== "login") {
+        setTotalUsers(null);
+        return;
+      }
+
+      try {
+        const response = await api.userCount();
+        if (!cancelled) {
+          setTotalUsers(response.totalUsers ?? 0);
+        }
+      } catch (countError) {
+        if (!cancelled) {
+          setTotalUsers(null);
+        }
+      }
+    }
+
+    loadUserCount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const onSubmit = async (values) => {
     if (mode === "login") {
@@ -209,6 +239,16 @@ export function AuthPage({ mode }) {
                 </div>
               ))}
             </div>
+            {mode === "login" && totalUsers !== null && (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <div className="text-sm font-semibold text-white">
+                  Community size
+                </div>
+                <div className="mt-1 text-sm text-white/55">
+                  {totalUsers.toLocaleString()} users have joined PhinuxTV.
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="p-8 sm:p-12">

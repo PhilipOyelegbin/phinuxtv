@@ -34,6 +34,9 @@ export function AppShell() {
             <NavLink to="/movies" className={navLinkClass}>
               Movies
             </NavLink>
+            <NavLink to="/tv-series" className={navLinkClass}>
+              TV Series
+            </NavLink>
             <NavLink to="/favorites" className={navLinkClass}>
               Favorites
             </NavLink>
@@ -84,6 +87,15 @@ export function AppShell() {
                       }
                     >
                       Movies
+                    </NavLink>
+                    <NavLink
+                      to="/tv-series"
+                      onClick={closeMobileMenu}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-3 py-2 text-sm transition ${isActive ? "bg-white text-ink-950" : "text-white/75 hover:bg-white/10 hover:text-white"}`
+                      }
+                    >
+                      TV Series
                     </NavLink>
                     <NavLink
                       to="/favorites"

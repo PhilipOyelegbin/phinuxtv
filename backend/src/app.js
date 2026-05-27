@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const { createAuthRoutes } = require("./routes/auth.routes");
 const { createMovieRoutes } = require("./routes/movie.routes");
@@ -10,6 +11,13 @@ const { createSwaggerSpec } = require("./swagger");
 function createApp(dataSource) {
   const app = express();
   const swaggerSpec = createSwaggerSpec();
+  const docsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many requests. Please try again later.",
+  });
 
   app.use(helmet());
   app.use(
@@ -24,8 +32,13 @@ function createApp(dataSource) {
     res.json({ ok: true, service: "PhinuxTV API" });
   });
 
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get("/api-docs.json", (_req, res) => {
+  app.use(
+    "/api-docs",
+    docsLimiter,
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec),
+  );
+  app.get("/api-docs.json", docsLimiter, (_req, res) => {
     res.json(swaggerSpec);
   });
 

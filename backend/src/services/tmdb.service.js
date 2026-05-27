@@ -1,9 +1,14 @@
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w780";
 const VIDSRC_EMBED_BASE_URL = "https://vidsrc-embed.ru/embed/movie";
+const VIDSRC_TV_EMBED_BASE_URL = "https://vidsrc-embed.ru/embed/tv";
 
 function buildEmbedUrl(tmdbId) {
   return `${VIDSRC_EMBED_BASE_URL}/${tmdbId}`;
+}
+
+function buildTvEmbedUrl(tmdbId) {
+  return `${VIDSRC_TV_EMBED_BASE_URL}/${tmdbId}`;
 }
 
 function getTmdbKey() {
@@ -154,6 +159,29 @@ async function fetchTopRatedMovies(page = 1) {
   };
 }
 
+async function fetchPopularTvShows(page = 1) {
+  const payload = await tmdbRequest("/tv/popular", { page: String(page) });
+  return {
+    results: Array.isArray(payload.results) ? payload.results : [],
+    page: Number(payload.page) || Number(page) || 1,
+    totalPages: Number(payload.total_pages) || 1,
+    totalResults: Number(payload.total_results) || 0,
+  };
+}
+
+async function searchTvShows(query, page = 1) {
+  const payload = await tmdbRequest("/search/tv", {
+    query,
+    page: String(page),
+  });
+  return {
+    results: Array.isArray(payload.results) ? payload.results : [],
+    page: Number(payload.page) || Number(page) || 1,
+    totalPages: Number(payload.total_pages) || 1,
+    totalResults: Number(payload.total_results) || 0,
+  };
+}
+
 async function searchMovies(query, page = 1) {
   const payload = await tmdbRequest("/search/movie", {
     query,
@@ -179,6 +207,23 @@ async function fetchMovieDetails(tmdbId) {
   };
 }
 
+async function fetchTvSeriesDetails(tmdbId) {
+  const [series, credits] = await Promise.all([
+    tmdbRequest(`/tv/${tmdbId}`),
+    tmdbRequest(`/tv/${tmdbId}/credits`),
+  ]);
+
+  return {
+    ...series,
+    credits,
+  };
+}
+
+async function fetchTvSeriesRecommendations(tmdbId) {
+  const payload = await tmdbRequest(`/tv/${tmdbId}/recommendations`);
+  return Array.isArray(payload.results) ? payload.results : [];
+}
+
 async function fetchRecommendations(tmdbId) {
   const payload = await tmdbRequest(`/movie/${tmdbId}/recommendations`);
   return Array.isArray(payload.results) ? payload.results : [];
@@ -189,9 +234,14 @@ module.exports = {
   fetchNowPlayingMovies,
   fetchUpcomingMovies,
   fetchTopRatedMovies,
+  fetchPopularTvShows,
+  searchTvShows,
   searchMovies,
   fetchMovieDetails,
+  fetchTvSeriesDetails,
+  fetchTvSeriesRecommendations,
   fetchRecommendations,
+  buildTvEmbedUrl,
   toMovieEntity,
   toMovieResponse,
 };

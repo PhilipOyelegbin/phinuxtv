@@ -4,9 +4,14 @@ const {
   fetchNowPlayingMovies,
   fetchUpcomingMovies,
   fetchTopRatedMovies,
+  fetchPopularTvShows,
+  searchTvShows,
   searchMovies,
   fetchMovieDetails,
+  fetchTvSeriesDetails,
+  fetchTvSeriesRecommendations,
   fetchRecommendations,
+  buildTvEmbedUrl,
   toMovieEntity,
   toMovieResponse,
 } = require("./tmdb.service");
@@ -75,6 +80,69 @@ async function upsertMovieFromTmdb(dataSource, tmdbMovie) {
 async function syncTmdbMovieList(dataSource, tmdbMovies) {
   return Promise.all(
     tmdbMovies.map((tmdbMovie) => upsertMovieFromTmdb(dataSource, tmdbMovie)),
+  );
+}
+
+function toTvSeriesEntity(tmdbSeries) {
+  const genres = Array.isArray(tmdbSeries.genres)
+    ? tmdbSeries.genres.map((genre) => genre.name).filter(Boolean)
+    : [];
+
+  return {
+    tmdbId: Number(tmdbSeries.id),
+    title: tmdbSeries.name || tmdbSeries.original_name || "Untitled",
+    description: tmdbSeries.overview || "No description available.",
+    genre: genres[0] || "TV Series",
+    tags: genres,
+    cast: Array.isArray(tmdbSeries.credits?.cast)
+      ? tmdbSeries.credits.cast
+          .slice(0, 5)
+          .map((member) => member.name)
+          .filter(Boolean)
+      : [],
+    director: Array.isArray(tmdbSeries.credits?.crew)
+      ? (
+          tmdbSeries.credits.crew.find((member) => member.job === "Director") ||
+          {}
+        ).name || ""
+      : "",
+    releaseYear: tmdbSeries.first_air_date
+      ? Number(tmdbSeries.first_air_date.slice(0, 4))
+      : 0,
+    durationMinutes:
+      Array.isArray(tmdbSeries.episode_run_time) &&
+      tmdbSeries.episode_run_time.length > 0
+        ? tmdbSeries.episode_run_time[0]
+        : 0,
+    rating: tmdbSeries.vote_average || 0,
+    posterUrl: tmdbSeries.poster_path
+      ? `https://image.tmdb.org/t/p/w780${tmdbSeries.poster_path}`
+      : "",
+    streamUrl: buildTvEmbedUrl(tmdbSeries.id),
+  };
+}
+
+async function upsertTvSeriesFromTmdb(dataSource, tmdbSeries) {
+  const movieRepository = dataSource.getRepository("Movie");
+  const payload = toTvSeriesEntity(tmdbSeries);
+  const existing = await movieRepository.findOne({
+    where: { tmdbId: payload.tmdbId },
+  });
+
+  if (existing) {
+    Object.assign(existing, payload);
+    return movieRepository.save(existing);
+  }
+
+  const series = movieRepository.create(payload);
+  return movieRepository.save(series);
+}
+
+async function syncTmdbTvSeriesList(dataSource, tmdbSeriesList) {
+  return Promise.all(
+    tmdbSeriesList.map((tmdbSeries) =>
+      upsertTvSeriesFromTmdb(dataSource, tmdbSeries),
+    ),
   );
 }
 
@@ -159,14 +227,19 @@ async function resolveMovieRecord(dataSource, movieIdentifier) {
 }
 
 async function cacheMovieRecord(movie) {
+  const cacheScope = String(movie.streamUrl || "").includes("/embed/tv/")
+    ? "tv-series"
+    : "movie";
+
   await Promise.all([
-    setCache(createCacheKey("movie:id", movie.id), movie, 1800),
-    setCache(createCacheKey("movie:tmdb", movie.tmdbId), movie, 1800),
+    setCache(createCacheKey(`${cacheScope}:id`, movie.id), movie, 1800),
+    setCache(createCacheKey(`${cacheScope}:tmdb`, movie.tmdbId), movie, 1800),
   ]);
 }
 
 async function getEnrichedMovie(dataSource, movieIdentifier) {
   const movie = await resolveMovieRecord(dataSource, movieIdentifier);
+  const isTvSeries = String(movie.streamUrl || "").includes("/embed/tv/");
 
   if (
     !movie.cast ||
@@ -175,8 +248,12 @@ async function getEnrichedMovie(dataSource, movieIdentifier) {
     !movie.durationMinutes ||
     !movie.streamUrl
   ) {
-    const tmdbMovie = await fetchMovieDetails(movie.tmdbId);
-    const refreshedMovie = await upsertMovieFromTmdb(dataSource, tmdbMovie);
+    const details = isTvSeries
+      ? await fetchTvSeriesDetails(movie.tmdbId)
+      : await fetchMovieDetails(movie.tmdbId);
+    const refreshedMovie = isTvSeries
+      ? await upsertTvSeriesFromTmdb(dataSource, details)
+      : await upsertMovieFromTmdb(dataSource, details);
     await cacheMovieRecord(refreshedMovie);
     return refreshedMovie;
   }
@@ -283,6 +360,83 @@ async function listMoviesByCategory(dataSource, userId, category, page = 1) {
       throw error;
     }
   }
+}
+
+async function listTvSeries(dataSource, userId, search, page = 1) {
+  const currentPage = Number(page) > 0 ? Number(page) : 1;
+  const cacheKey = createCacheKey(
+    "tv-series-v2",
+    search
+      ? `search:${search}:page:${currentPage}`
+      : `popular:page:${currentPage}`,
+  );
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    return {
+      tvSeries: cached.tvSeries,
+      page: cached.page,
+      totalPages: cached.totalPages,
+      totalResults: cached.totalResults,
+    };
+  }
+
+  const tmdbPayload = search
+    ? await searchTvShows(search, currentPage)
+    : await fetchPopularTvShows(currentPage);
+  const tvSeries = await syncTmdbTvSeriesList(dataSource, tmdbPayload.results);
+
+  const responsePayload = {
+    tvSeries,
+    page: tmdbPayload.page,
+    totalPages: tmdbPayload.totalPages,
+    totalResults: tmdbPayload.totalResults,
+  };
+
+  await setCache(cacheKey, responsePayload, 300);
+
+  return responsePayload;
+}
+
+async function getTvSeriesById(dataSource, userId, seriesId) {
+  const movieRepository = dataSource.getRepository("Movie");
+  const identifier = String(seriesId);
+  let series = await movieRepository.findOne({ where: { id: identifier } });
+
+  if (!series && /^\d+$/.test(identifier)) {
+    series = await movieRepository.findOne({
+      where: { tmdbId: Number(identifier) },
+    });
+  }
+
+  if (!series && /^\d+$/.test(identifier)) {
+    const tmdbSeries = await fetchTvSeriesDetails(Number(identifier));
+    series = await upsertTvSeriesFromTmdb(dataSource, tmdbSeries);
+  }
+
+  if (!series) {
+    const error = new Error("TV series not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (
+    !series.cast ||
+    series.cast.length === 0 ||
+    !series.director ||
+    !series.durationMinutes ||
+    !series.streamUrl ||
+    !String(series.streamUrl).includes("/embed/tv/")
+  ) {
+    const tmdbSeries = await fetchTvSeriesDetails(series.tmdbId);
+    series = await upsertTvSeriesFromTmdb(dataSource, tmdbSeries);
+  }
+
+  const flags = await getUserFlags(dataSource, userId, [series.id]);
+  return movieToResponse(series, {
+    isFavorite: flags.favoriteMovieIds.has(series.id),
+    isLiked: flags.likedMovieIds.has(series.id),
+  });
 }
 
 async function getMovieById(dataSource, userId, movieId) {
@@ -438,7 +592,13 @@ async function getHistory(dataSource, userId) {
 
 async function getRecommendations(dataSource, userId, movieId) {
   const currentMovie = await getEnrichedMovie(dataSource, movieId);
-  const cacheKey = createCacheKey("recommendations", currentMovie.tmdbId);
+  const isTvSeries = String(currentMovie.streamUrl || "").includes(
+    "/embed/tv/",
+  );
+  const cacheKey = createCacheKey(
+    isTvSeries ? "tv-recommendations" : "recommendations",
+    currentMovie.tmdbId,
+  );
   const cached = await getCache(cacheKey);
 
   if (cached) {
@@ -456,11 +616,12 @@ async function getRecommendations(dataSource, userId, movieId) {
     );
   }
 
-  const tmdbRecommendations = await fetchRecommendations(currentMovie.tmdbId);
-  const movies = await syncTmdbMovieList(
-    dataSource,
-    tmdbRecommendations.slice(0, 6),
-  );
+  const tmdbRecommendations = isTvSeries
+    ? await fetchTvSeriesRecommendations(currentMovie.tmdbId)
+    : await fetchRecommendations(currentMovie.tmdbId);
+  const movies = isTvSeries
+    ? await syncTmdbTvSeriesList(dataSource, tmdbRecommendations.slice(0, 6))
+    : await syncTmdbMovieList(dataSource, tmdbRecommendations.slice(0, 6));
   await setCache(cacheKey, movies, 1800);
 
   const flags = await getUserFlags(
@@ -481,6 +642,8 @@ module.exports = {
   movieToResponse,
   listMovies,
   listMoviesByCategory,
+  listTvSeries,
+  getTvSeriesById,
   getMovieById,
   addFavorite,
   removeFavorite,
