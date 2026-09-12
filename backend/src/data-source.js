@@ -25,6 +25,9 @@ const dataSource = new DataSource({
     LikeSchema,
     WatchHistorySchema,
   ],
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 module.exports = { dataSource };
